@@ -11,6 +11,7 @@ body {
     height: 100vh;
     overflow: hidden;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
 }
@@ -18,4 +19,9 @@ body {
 .spritePosition {
     margin: 10px 0 0 10px;
     font-size: 0.8em;
+}
+
+#game-container {
+    display: flex;
+    justify-content: right;
 }

@@ -32,7 +32,8 @@ export class Preloader extends Scene
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath('assets');
 
-        this.load.image('title','happy-zombie-farm.png')
+        this.load.image('brain','brain.png');
+        this.load.image('house', 'house.png');
     }
 
     create ()

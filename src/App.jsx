@@ -74,7 +74,9 @@ function App ()
         <div id="app">
 
             <header>
-                {/*
+                {
+                /*
+                    
                     Тут будет верхняя менюшка
                 */}
             </header>
@@ -87,7 +89,7 @@ function App ()
 
             <FarmGame ref={phaserRef} currentActiveScene={currentScene} />
 
-            
+
             {/* Пример для себя 
             
             <div className="uiPanel">

@@ -1,29 +1,58 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 
-export class MainMenu extends Scene
-{
+export class MainMenu extends Scene {
     logoTween;
 
-    constructor ()
-    {
+    constructor() {
         super('MainMenu');
     }
 
-    create ()
-    {
-        
-        const pw = (percent) => this.scale.width * (percent / 100);
-        const ph = (percent) => this.scale.height * (percent / 100);
+    create() {
 
-        const rectRight = this.add.rectangle(pw(10), ph(50), pw(90), 40, 0x000000 ).setOrigin(0, 0);
-        const rectBot = this.add.rectangle(pw(10), ph(50), 40, ph(50), 0x000000 ).setOrigin(0, 0);
+        const pw = (p) => this.scale.width * p / 100;
+        const ph = (p) => this.scale.height * p / 100;
 
-        this.add.image(pw(50), ph(45), 'title').setScale(0.5);
+        const createPanel = () => {
+            const rectRight = this.add.rectangle(0, ph(45), pw(100), ph(10), 0x000000)
+                .setOrigin(0, 0);
 
-        const blackRect = this.add.layer();
+            const rectBot = this.add.rectangle(0, ph(45), ph(10), ph(55), 0x000000)
+                .setOrigin(0, 0);
 
-        blackRect.add(rectRight, rectBot);
+            const panelLayer = this.add.layer([rectRight, rectBot]);
+
+            return panelLayer;
+        };
+
+        const panel = createPanel();
+
+        document.fonts.ready.then(() => {
+
+            const titleText = this.add.text(pw(45), ph(35), 'happy zombie farm', {
+                font: '633 128px "Bezier_Sans"',
+                color: '#000000'
+            })
+                .setOrigin(0.5);
+
+            const startText = this.add.text(pw(45), ph(50), 'play now', {
+                font: '700 32px "Montserrat_Alternates"',
+                color: '#ffffff'
+            })
+                .setOrigin(0.5)
+                .setInteractive({ useHandCursor: true });
+
+            startText.on('pointerup', () => {
+                this.scene.start('Game');
+            });
+        });
+
+        const createImage = (px, py, key, scale = 0.6) =>
+            this.add.image(pw(px), ph(py), key).setScale(scale).setOrigin(0.5);
+
+        const brainImg = createImage(40.5, 36, 'brain');
+        const brainImg2 = createImage(52.8, 36, 'brain');
+
 
 
 
@@ -36,12 +65,11 @@ export class MainMenu extends Scene
         //     stroke: '#000000', strokeThickness: 8,
         //     align: 'center'
         // }).setDepth(100).setOrigin(0.5);
-        
+
         // EventBus.emit('current-scene-ready', this);
     }
 
-    changeScene ()
-    {
+    changeScene() {
         // if (this.logoTween)
         // {
         //     this.logoTween.stop();
