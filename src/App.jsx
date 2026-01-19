@@ -1,31 +1,17 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import Phaser from 'phaser';
 import { FarmGame } from './FarmGame';
+import Login from './Login';
+import Dashboard from './Dashboard';
 
-function App() {
+
+function AppGame() {
     const [showGradientLine, setShowGradientLine] = useState(true);
     const [canMoveSprite, setCanMoveSprite] = useState(true);
     const phaserRef = useRef();
-    const [spritePosition, setSpritePosition] = useState({ x: 0, y: 0 });
-    
     const [showSidebar, setShowSidebar] = useState(false);
-
-    const changeScene = () => {
-        const scene = phaserRef.current.scene;
-        if (scene) {
-            scene.changeScene();
-        }
-    };
-
-    const moveSprite = () => {
-        const scene = phaserRef.current.scene;
-        if (scene && scene.scene.key === 'MainMenu') {
-            scene.moveLogo(({ x, y }) => {
-                setSpritePosition({ x, y });
-            });
-        }
-    };
 
     const addSprite = () => {
         const scene = phaserRef.current.scene;
@@ -111,5 +97,18 @@ function App() {
         </div>
     )
 }
+
+function App() {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/" element={<AppGame />} />        
+          <Route path="/login" element={<Login />} />     
+          <Route path="/dashboard" element={<Dashboard />} /> 
+        </Routes>
+      </Router>
+    );
+  }
+
 
 export default App

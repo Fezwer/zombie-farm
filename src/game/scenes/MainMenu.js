@@ -43,9 +43,11 @@ export class MainMenu extends Scene {
                 .setOrigin(0.5)
                 .setInteractive({ useHandCursor: true });
 
-            startText.on('pointerup', () => {
-                this.scene.start('Game');
-            });
+                startText.on('pointerup', () => {
+                    // Переход на страницу React логина
+                    window.location.href = '/login';
+                  });                  
+                  
         });
 
         const createImage = (px, py, key, scale = 0.6) =>
