@@ -24,6 +24,11 @@ export default defineConfig({
         phasermsg()
     ],
     logLevel: 'warning',
+    server: {
+        host: true,
+        port: 5173,
+        allowedHosts: ["hzfarm.ru"],
+      },
     build: {
         rollupOptions: {
             output: {
