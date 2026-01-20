@@ -121,7 +121,7 @@ function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<AppGame />} />
+                <Route path="/" element={<AppGameWrapper />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<Dashboard />} />
             </Routes>
