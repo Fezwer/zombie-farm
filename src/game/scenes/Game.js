@@ -187,7 +187,7 @@ export class Game extends Scene {
         }
 
         obj.setDisplaySize(this.cellW, this.cellH);
-        obj.setDepth(1); // над полем
+        obj.setDepth(0); // над полем
 
         obj.setInteractive({ useHandCursor: true });
         obj.houseData = house;
