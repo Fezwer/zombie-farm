@@ -173,15 +173,17 @@ export class Game extends Scene {
         let obj;
 
         // housAnims -> спрайт с анимацией
-        if (house.skin === 'housAnims') {
+        if (house.type === 'DECOR') {
             obj = this.add.sprite(x, y, 'housAnims');
             if (this.anims.exists('housAnims_idle')) {
                 obj.play('housAnims_idle');
             }
-        } else {
+        } else if (house.type === 'FARM') {
             // simpleHouse или другие скины -> просто картинка
             // Предполагаем, что skin = ключ загруженной текстуры
-            obj = this.add.image(x, y, house.skin || 'simpleHouse');
+            obj = this.add.image(x, y, 'field');
+        } else if (house.type === 'STORAGE') {
+            obj = this.add.image(x, y, 'simpleHouse');
         }
 
         obj.setDisplaySize(this.cellW, this.cellH);
@@ -232,12 +234,12 @@ export class Game extends Scene {
         try {
             const res = await apiBuildHouse({
                 type: 'FARM',        // HouseType.FARM
-                skin: 'simpleHouse', // либо 'housAnims', если хочешь анимированный дом
+                skin: 'basic', // либо 'housAnims', если хочешь анимированный дом
                 cell: cellIndex
             });
 
             if (!res.ok) {
-                console.error('Не удалось построить дом', res.error || res.raw);
+                console.error('Не удалось построить ферму', res.error || res.raw);
                 return;
             }
 
