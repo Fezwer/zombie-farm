@@ -87,6 +87,15 @@ export async function postAuthRefresh() {
     return res;
 }
 
+export async function getScrfToken() {
+    const res = await fetch('https://hzfarm.ru/api/auth/gen-csrf', {
+        method: 'GET',
+        credentials: 'include'
+    });
+
+    return res;
+}
+
 export async function postAuthLogout() {
     const res = await fetch('https://hzfarm.ru/api/auth/logout', {
         method: 'POST',
