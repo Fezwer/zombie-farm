@@ -43,7 +43,7 @@ export async function callGraphQL(query, variables, description) {
     };
 
     try {
-        const resp = await fetch("https://hzfarm.ru/api", {
+        const resp = await fetch("https://hzfarm.ru/api/graphql", {
             method: "POST",
             headers: headers,
             credentials: "include",
