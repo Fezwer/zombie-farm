@@ -68,15 +68,9 @@ export default function Dashboard() {
           <span className="close-x" onClick={() => navigate(-1)}>x</span>
         </div>
         <h3 className="brand">HZF</h3>
-        <div className="actions">
-          <button className="btn outline">
-            <img className="btn-icon" src="/assets/telegram.png" alt="Telegram" />
-            telegram
-          </button>
-        </div>
 
         {/* Контейнер для Telegram-виджета */}
-        <div id="telegram-widget-container" style={{ marginTop: 16 }}></div>
+        <div id="telegram-widget-container"></div>
       </div>
     </div>
   );

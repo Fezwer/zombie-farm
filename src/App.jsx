@@ -29,7 +29,7 @@ function AppGame() {
             if (r && r.game && r.game.scene) {
                 try {
                     // Запускаем сцену по ключу
-                    r.game.scene.start(startScene);
+                    phaserRef.current.scene.scene.start('Game');
                     // Убираем параметр, чтобы не перезапускать сцену при навигации/рендеринге
                     const url = new URL(window.location.href);
                     url.searchParams.delete('start');
