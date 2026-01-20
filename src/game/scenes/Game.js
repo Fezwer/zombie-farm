@@ -12,12 +12,18 @@ export class Game extends Scene {
         const ph = (p) => this.scale.height * p / 100;
 
         //Создаем анимации
-        this.anims.create({
-            key: 'houseIdle',
-            frames: this.anims.generateFrameNumbers('housAnims', { start: 0, end: totalFrames - 1 }), // end:-1 означает взять все кадры
-            frameRate: 32,    // кадров в секунду — подбирайте
-            repeat: -1       // -1 = бесконечно
-        });
+        const texture = this.textures.get('housAnims');
+        const totalFrames = texture ? texture.frameTotal : 0;
+        if (totalFrames > 0) {
+            this.anims.create({
+                key: 'houseIdle',
+                frames: this.anims.generateFrameNumbers('housAnims', { start: 0, end: totalFrames - 1 }),
+                frameRate: 32,
+                repeat: -1
+            });
+        } else {
+            console.warn('Texture "housAnims" not loaded or has no frames');
+        }
 
         const cols = 4;
         const rows = 4;
@@ -58,7 +64,7 @@ export class Game extends Scene {
                 const yInBorder = contentH / 1.75 + row * cellH / 2.7 - col * 120;
 
                 const house = this.add.sprite(xInBorder, yInBorder, gameField[i].skin)
-                .setOrigin(0.5);
+                    .setOrigin(0.5);
                 house.anims.timeScale = 0.4;
                 house.play('houseIdle');
 
@@ -68,9 +74,9 @@ export class Game extends Scene {
                 const shadow = this.add.sprite(house.x, house.y, gameField[i].skin)
                     .setOrigin(0.5)
                     .setTint(0x000000)
-                    .setAlpha(0.2)       
-                    .setScale(0.92) 
-                    .setDepth(0); 
+                    .setAlpha(0.2)
+                    .setScale(0.92)
+                    .setDepth(0);
 
                 shadow.setVisible(false);
                 // pointer события
