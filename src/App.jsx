@@ -14,6 +14,7 @@ function AppGameWrapper() {
 }
 function AppGame() {
     const [showGradientLine, setShowGradientLine] = useState(true);
+    const [canMoveSprite, setCanMoveSprite] = useState(true);
     const [showSidebar, setShowSidebar] = useState(false);
     const location = useLocation();
     const phaserRef = useRef(); // тот же ref, который передаёте в FarmGame
