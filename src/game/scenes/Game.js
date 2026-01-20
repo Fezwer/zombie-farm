@@ -18,7 +18,7 @@ export class Game extends Scene {
             this.anims.create({
                 key: 'houseIdle',
                 frames: this.anims.generateFrameNumbers('housAnims', { start: 0, end: totalFrames - 1 }),
-                frameRate: 32,
+                frameRate: 31,
                 repeat: -1
             });
         } else {
