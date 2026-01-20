@@ -177,16 +177,16 @@ export class Game extends Scene {
 
         // housAnims -> спрайт с анимацией
         if (house.type === 'DECOR') {
-            obj = this.add.sprite(x, y, 'housAnims');
+            obj = this.add.sprite(x, y, 'housAnims').setOrigin(0);
             if (this.anims.exists('housAnims_idle')) {
                 obj.play('housAnims_idle');
             }
         } else if (house.type === 'FARM') {
             // simpleHouse или другие скины -> просто картинка
             // Предполагаем, что skin = ключ загруженной текстуры
-            obj = this.add.image(x, y, 'field');
+            obj = this.add.image(x, y, 'field').setOrigin(0);
         } else if (house.type === 'STORAGE') {
-            obj = this.add.image(x, y, 'simpleHouse');
+            obj = this.add.image(x, y, 'simpleHouse').setOrigin(0);
         }
 
         obj.setDisplaySize(this.cellW, this.cellH);
