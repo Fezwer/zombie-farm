@@ -164,7 +164,7 @@ export class Game extends Scene {
         const contentW = this.scale.width;
         const contentH = this.scale.height;
 
-        const xInBorder = contentW / 5.5 + (col * this.cellW) / 2.8 + row * 140;
+        const xInBorder = contentW / 3.2 + (col * this.cellW) / 2.2 + row * 140;
         const yInBorder = contentH / 1.75 + (row * this.cellH) / 2.7 - col * 120;
 
         return { x: xInBorder, y: yInBorder };
@@ -177,16 +177,16 @@ export class Game extends Scene {
 
         // housAnims -> спрайт с анимацией
         if (house.type === 'DECOR') {
-            obj = this.add.sprite(x, y, 'housAnims').setOrigin(0);
+            obj = this.add.sprite(x, y, 'housAnims');
             if (this.anims.exists('housAnims_idle')) {
                 obj.play('housAnims_idle');
             }
         } else if (house.type === 'FARM') {
             // simpleHouse или другие скины -> просто картинка
             // Предполагаем, что skin = ключ загруженной текстуры
-            obj = this.add.image(x, y, 'field').setOrigin(0);
+            obj = this.add.image(x, y, 'field');
         } else if (house.type === 'STORAGE') {
-            obj = this.add.image(x, y, 'simpleHouse').setOrigin(0);
+            obj = this.add.image(x, y, 'simpleHouse');
         }
 
         obj.setDisplaySize(this.cellW, this.cellH);
