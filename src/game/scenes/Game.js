@@ -2,7 +2,7 @@
 
 import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
-import { apiGetPlayerHouses, apiBuildHouse } from '../../request'; 
+import { apiGetPlayerHouses, apiBuildHouse } from '../../request';
 // apiGetPlayerHouses / apiBuildHouse — см. ранее как сделать поверх callGraphQL
 
 export class Game extends Scene {
@@ -37,9 +37,9 @@ export class Game extends Scene {
 
         // Рисуем border (забор) по центру экрана
         this.border = this.add.image(contentW / 2, contentH / 2, 'border')
-        .setOrigin(0.5)
-        .setAngle(3)
-        .setScale(0.9);
+            .setOrigin(0.5)
+            .setAngle(3)
+            .setScale(0.9);
         // При необходимости — масштабируем
         // this.border.setScale(0.9);
 
@@ -88,20 +88,15 @@ export class Game extends Scene {
                 0x000000,
                 0 // прозрачный
             );
-            rect.setStrokeStyle(1, 0x000000, 0.15);
+            // Изначально рамка невидима
+            rect.setStrokeStyle(1, 0x000000, 0);
             rect.setInteractive({ useHandCursor: true });
             rect.cellIndex = cellIndex;
-
             rect.on('pointerover', () => {
-                rect.setStrokeStyle(2, 0xffff00, 0.6);
+                rect.setStrokeStyle(2, 0xffff00, 0.6); // только при ховере видимая рамка
             });
-
             rect.on('pointerout', () => {
-                rect.setStrokeStyle(1, 0x000000, 0.15);
-            });
-
-            rect.on('pointerup', () => {
-                this.onCellClicked(cellIndex);
+                rect.setStrokeStyle(1, 0x000000, 0); // снова полностью прозрачная
             });
 
             this.cellPlaceholders.push(rect);
@@ -141,7 +136,7 @@ export class Game extends Scene {
 
             houses.forEach((house) => {
                 if (
-                    typeof house.cell !== 'number' ||   
+                    typeof house.cell !== 'number' ||
                     house.cell < 0 ||
                     house.cell >= this.totalCells
                 ) {
