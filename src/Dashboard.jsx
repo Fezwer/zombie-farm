@@ -18,10 +18,7 @@ export default function Dashboard() {
           if (redirectTo) {
             window.location.href = redirectTo;
           } else {
-            // SPA-редирект: добавляем ?start=Game
-            navigate("/?start=Game", { replace: true });
-            // или если хотите полный reload:
-            // window.location.href = "/?start=Game";
+            window.location.href = "/?start=Game";
           }
         } else {
           // Обработка ошибки от сервера — показать сообщение пользователю

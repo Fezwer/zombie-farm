@@ -1,15 +1,26 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { postAuthRefresh } from './request';
 
 export default function Login() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    (async () => {
+      const res = await postAuthRefresh();
+      if (res.ok) {
+        navigate('/?start=Game', { replace: true });
+      }
+    })();
+  }, [navigate]);
+
   const handleLogin = (e) => {
     e.preventDefault();
-    navigate('/dashboard'); 
+    navigate('/dashboard');
   };
 
   const handleBack = () => {
-    navigate(-1); 
+    navigate('/');
   };
 
   return (
@@ -24,7 +35,7 @@ export default function Login() {
         flexDirection: 'column',
       }}
     >
-      
+
       <button
         onClick={handleLogin}
         style={{
@@ -41,8 +52,8 @@ export default function Login() {
       >
         sign in to play!
       </button>
-  
-      
+
+
       <span
         onClick={handleBack}
         style={{
