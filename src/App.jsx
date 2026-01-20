@@ -53,6 +53,14 @@ function AppGame() {
         return () => clearInterval(interval);
     }, [location.search]);
 
+    const currentScene = (scene) => {
+        const key = scene.scene.key;
+        setCanMoveSprite(key !== 'MainMenu');
+        
+        setShowSidebar(key === 'Game');
+        setShowGradientLine(key !== 'Game');
+    };
+
     return (
         <div id="app" style={{ position: 'relative' }}>
             {showSidebar && (
