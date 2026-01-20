@@ -209,7 +209,6 @@ const BUILD_HOUSE_MUTATION = `
   mutation BuildHouse($input: BuildHouseInput!) {
     buildHouse(input: $input) {
       id
-      playerId
       type
       level
       skin
