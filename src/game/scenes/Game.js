@@ -118,7 +118,7 @@ export class Game extends Scene {
                     start: 0,
                     end: totalFrames - 1 // или 0..N, если у idle несколько кадров
                 }),
-                frameRate: 31,
+                frameRate: 12,
                 repeat: -1
             });
         }
