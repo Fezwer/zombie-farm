@@ -113,14 +113,17 @@ export class Game extends Scene {
 
     ensureHouseAnimations() {
         // Простейшая анимация для housAnims; поправь start/end под свой спрайтшит
+        const texture = this.textures.get('housAnims');
+        const totalFrames = texture ? texture.frameTotal : 0;
+
         if (!this.anims.exists('housAnims_idle')) {
             this.anims.create({
                 key: 'housAnims_idle',
                 frames: this.anims.generateFrameNumbers('housAnims', {
                     start: 0,
-                    end: 32 // или 0..N, если у idle несколько кадров
+                    end: totalFrames - 1 // или 0..N, если у idle несколько кадров
                 }),
-                frameRate: 4,
+                frameRate: 31,
                 repeat: -1
             });
         }
