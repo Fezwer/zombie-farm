@@ -13,6 +13,8 @@ function AppGameWrapper() {
     return <AppGame />;
 }
 function AppGame() {
+    const [showGradientLine, setShowGradientLine] = useState(true);
+    const [showSidebar, setShowSidebar] = useState(false);
     const location = useLocation();
     const phaserRef = useRef(); // тот же ref, который передаёте в FarmGame
     // эффект — старт сцены если в query есть start=Game и phaser готов
