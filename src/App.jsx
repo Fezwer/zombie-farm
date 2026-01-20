@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 import Phaser from 'phaser';
 import { FarmGame } from './FarmGame';
@@ -121,7 +122,7 @@ function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<AppGameWrapper />} />
+                <Route path="/" element={<AppGame />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<Dashboard />} />
             </Routes>
