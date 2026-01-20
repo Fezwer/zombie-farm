@@ -1,205 +1,262 @@
-import { EventBus } from '../EventBus';
+// src/game/scenes/Game.js
+
 import { Scene } from 'phaser';
+import { EventBus } from '../EventBus';
+import { apiGetPlayerHouses, apiBuildHouse } from '../../request'; 
+// apiGetPlayerHouses / apiBuildHouse — см. ранее как сделать поверх callGraphQL
 
 export class Game extends Scene {
     constructor() {
         super('Game');
+
+        // Размер клетки
+        this.cellW = 300 * 0.9;
+        this.cellH = 300 * 0.9;
+
+        // Сетка 4x4 (16 ячеек)
+        this.COLS = 4;
+        this.ROWS = 4;
+        this.totalCells = this.COLS * this.ROWS;
+
+        // Логические данные по ячейкам (House или null)
+        this.cells = [];
+
+        // Плейсхолдеры (пустые объекты 300x300)
+        this.cellPlaceholders = [];
+
+        // Спрайты/картинки домов по ID
+        this.houseSprites = new Map();
     }
 
     create() {
-        EventBus.emit('current-scene-ready', this);
-        const pw = (p) => this.scale.width * p / 100;
-        const ph = (p) => this.scale.height * p / 100;
+        const contentW = this.scale.width;
+        const contentH = this.scale.height;
 
-        //Создаем анимации
-        const texture = this.textures.get('housAnims');
-        const totalFrames = texture ? texture.frameTotal : 0;
-        if (totalFrames > 0) {
+        // Фон можно добавить, если нужен:
+        // this.add.image(contentW / 2, contentH / 2, 'brain').setAlpha(0.1);
+
+        // Рисуем border (забор) по центру экрана
+        this.border = this.add.image(contentW / 2, contentH / 2, 'border')
+        .setOrigin(0.5)
+        .setAngle(3)
+        .setScale(0.9);
+        // При необходимости — масштабируем
+        // this.border.setScale(0.9);
+
+        // Инициализация данных
+        this.initBoardData();
+
+        // Сначала рисуем поле (field) и пустые ячейки
+        this.createBoard(contentW, contentH);
+
+        // Анимации для housAnims (если ещё не созданы)
+        this.ensureHouseAnimations();
+
+        // Загружаем дома игрока с сервера и расставляем их по cell
+        this.loadHousesFromServer();
+
+        // Сообщаем React, что сцена готова
+        EventBus.emit('current-scene-ready', this);
+    }
+
+    initBoardData() {
+        this.cells = new Array(this.totalCells).fill(null);
+        this.cellPlaceholders = [];
+        this.houseSprites.clear();
+    }
+
+    createBoard(contentW, contentH) {
+        for (let cellIndex = 0; cellIndex < this.totalCells; cellIndex++) {
+            const col = cellIndex % this.COLS;
+            const row = Math.floor(cellIndex / this.COLS);
+
+            // Координаты "внутри" бордера по твоей формуле
+            const xInBorder = contentW / 3.2 + (col * this.cellW) / 2.2 + row * 140;
+            const yInBorder = contentH / 1.75 + (row * this.cellH) / 2.7 - col * 120;
+
+            // 1) Подложка поля — картинка field под дом (или просто земля)
+            // const field = this.add.image(xInBorder, yInBorder, 'field');
+            // field.setDisplaySize(this.cellW, this.cellH);
+            // field.setDepth(0); // под домами
+
+            // 2) Пустой объект 300x300 — прозрачный прямоугольник, по которому кликаем
+            const rect = this.add.rectangle(
+                xInBorder,
+                yInBorder,
+                this.cellW,
+                this.cellH,
+                0x000000,
+                0 // прозрачный
+            );
+            rect.setStrokeStyle(1, 0x000000, 0.15);
+            rect.setInteractive({ useHandCursor: true });
+            rect.cellIndex = cellIndex;
+
+            rect.on('pointerover', () => {
+                rect.setStrokeStyle(2, 0xffff00, 0.6);
+            });
+
+            rect.on('pointerout', () => {
+                rect.setStrokeStyle(1, 0x000000, 0.15);
+            });
+
+            rect.on('pointerup', () => {
+                this.onCellClicked(cellIndex);
+            });
+
+            this.cellPlaceholders.push(rect);
+        }
+
+        // Чтобы дома были над border и field
+        this.border.setDepth(-1);
+    }
+
+    ensureHouseAnimations() {
+        // Простейшая анимация для housAnims; поправь start/end под свой спрайтшит
+        if (!this.anims.exists('housAnims_idle')) {
             this.anims.create({
-                key: 'houseIdle',
-                frames: this.anims.generateFrameNumbers('housAnims', { start: 0, end: totalFrames - 1 }),
-                frameRate: 31,
+                key: 'housAnims_idle',
+                frames: this.anims.generateFrameNumbers('housAnims', {
+                    start: 0,
+                    end: 32 // или 0..N, если у idle несколько кадров
+                }),
+                frameRate: 4,
                 repeat: -1
             });
-        } else {
-            console.warn('Texture "housAnims" not loaded or has no frames');
         }
-
-        const cols = 4;
-        const rows = 4;
-        const borderScale = 0.9;
-        const innerPadding = 20; // отступ внутри бордера (пикселей)
-        var depthCount = cols * rows + 1;
-
-        // контейнер, который потом отцентрируем
-        const fieldContainer = this.add.container(0, 0);
-
-        // добавляем бордер в container и масштабируем его
-        const borderImg = this.add.image(0, 0, 'border')
-            .setOrigin(0)
-            .setAngle(3);
-        borderImg.setScale(borderScale);
-        fieldContainer.add(borderImg);
-
-        // важно: displayWidth/displayHeight корректно отражают размер после setScale
-        const contentW = borderImg.displayWidth;
-        const contentH = borderImg.displayHeight;
-
-        const cellW = contentW / cols;
-        const cellH = contentH / rows;
-
-        // пример массива полей
-        const gameField = Array.from({ length: 16 }, (_, i) => ({
-            type: 'house', // Это брать с БД
-            skin: 'housAnims', // Это тоже брать с БД
-            level: 1,
-            index: i
-        }));
-
-        // создаём дома и вписываем их в ячейки
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                const i = row * cols + col;
-                const xInBorder = contentW / 5.5 + col * cellW / 2.8 + row * 140;
-                const yInBorder = contentH / 1.75 + row * cellH / 2.7 - col * 120;
-
-                const house = this.add.sprite(xInBorder, yInBorder, gameField[i].skin)
-                    .setOrigin(0.5);
-                house.anims.timeScale = 0.4;
-                house.play('houseIdle');
-
-                house.setInteractive({ useHandCursor: true });
-
-                // создаём тень — копию текстуры, но чёрную, плоская и под домом
-                const shadow = this.add.sprite(house.x, house.y, gameField[i].skin)
-                    .setOrigin(0.5)
-                    .setTint(0x000000)
-                    .setAlpha(0.2)
-                    .setScale(0.92)
-                    .setDepth(0);
-
-                shadow.setVisible(false);
-                // pointer события
-                house.on('pointerover', () => {
-                    shadow.setVisible(true);
-                    shadow.x = house.x;
-                    shadow.y = house.y;
-                    this.tweens.killTweensOf(shadow);
-                    this.tweens.add({
-                        targets: shadow,
-                        alpha: { from: 0, to: 0.45 },
-                        duration: 120,
-                        ease: 'Power1',
-                    });
-                    // поднимаем домик
-                    this.tweens.add({
-                        targets: house,
-                        y: house.y - 6,
-                        duration: 120,
-                        ease: 'Power1'
-                    });
-                });
-                house.on('pointerout', () => {
-                    this.tweens.killTweensOf(shadow);
-                    this.tweens.add({
-                        targets: shadow,
-                        alpha: 0,
-                        duration: 120,
-                        ease: 'Power1',
-                        onComplete: () => shadow.setVisible(false)
-                    });
-                    this.tweens.add({
-                        targets: house,
-                        y: house.y + 6,
-                        duration: 120,
-                        ease: 'Power1'
-                    });
-                });
-
-                // подгоняем размер дома под ячейку (сохраняем пропорции)
-
-                house.setScale(0.9);
-
-                // центрируем дом внутри ячейки: сдвинем по x,y так, чтобы дом был по центру ячейки
-                const extraX = (cellW - house.displayWidth) / 2;
-                const extraY = (cellH - house.displayHeight) / 2;
-                house.x += extraX;
-                house.y += extraY;
-
-                fieldContainer.add(shadow);
-                fieldContainer.add(house);
-            }
-        }
-
-        // отцентрируем контейнер на экране
-        const bounds = fieldContainer.getBounds();
-        fieldContainer.setPosition(
-            Math.round(this.scale.width / 2 - bounds.width / 2),
-            Math.round(this.scale.height / 2 - bounds.height / 2)
-        );
-
-        EventBus.emit('current-scene-ready', this);
     }
 
-    changeScene() {
-        this.scene.start('MainMenu');
+    async loadHousesFromServer() {
+        try {
+            const res = await apiGetPlayerHouses();
+            if (!res.ok) {
+                console.error('Не удалось загрузить дома игрока', res.error || res.raw);
+                return;
+            }
+
+            const houses = res.houses || [];
+
+            houses.forEach((house) => {
+                if (
+                    typeof house.cell !== 'number' ||   
+                    house.cell < 0 ||
+                    house.cell >= this.totalCells
+                ) {
+                    console.warn('Дом с некорректным cell:', house);
+                    return;
+                }
+
+                this.cells[house.cell] = house;
+                this.spawnHouseAtCell(house.cell, house);
+            });
+        } catch (e) {
+            console.error('Ошибка при загрузке домов с сервера', e);
+        }
+    }
+
+    cellToWorldPosition(cellIndex) {
+        const col = cellIndex % this.COLS;
+        const row = Math.floor(cellIndex / this.COLS);
+
+        const contentW = this.scale.width;
+        const contentH = this.scale.height;
+
+        const xInBorder = contentW / 5.5 + (col * this.cellW) / 2.8 + row * 140;
+        const yInBorder = contentH / 1.75 + (row * this.cellH) / 2.7 - col * 120;
+
+        return { x: xInBorder, y: yInBorder };
+    }
+
+    spawnHouseAtCell(cellIndex, house) {
+        const { x, y } = this.cellToWorldPosition(cellIndex);
+
+        let obj;
+
+        // housAnims -> спрайт с анимацией
+        if (house.skin === 'housAnims') {
+            obj = this.add.sprite(x, y, 'housAnims');
+            if (this.anims.exists('housAnims_idle')) {
+                obj.play('housAnims_idle');
+            }
+        } else {
+            // simpleHouse или другие скины -> просто картинка
+            // Предполагаем, что skin = ключ загруженной текстуры
+            obj = this.add.image(x, y, house.skin || 'simpleHouse');
+        }
+
+        obj.setDisplaySize(this.cellW, this.cellH);
+        obj.setDepth(1); // над полем
+
+        obj.setInteractive({ useHandCursor: true });
+        obj.houseData = house;
+
+        this.houseSprites.set(house.id, obj);
+
+        obj.on('pointerup', () => {
+            this.onHouseClicked(house, obj);
+        });
+    }
+
+    onCellClicked(cellIndex) {
+        const existingHouse = this.cells[cellIndex];
+
+        if (existingHouse) {
+            const sprite = this.houseSprites.get(existingHouse.id);
+            this.onHouseClicked(existingHouse, sprite);
+            return;
+        }
+
+        // Пустая клетка — пробуем построить дом
+        this.buildHouseAtCell(cellIndex);
+    }
+
+    onHouseClicked(house, sprite) {
+        console.log('Клик по дому', house);
+
+        if (!sprite) return;
+
+        this.tweens.add({
+            targets: sprite,
+            scaleX: sprite.scaleX * 1.05,
+            scaleY: sprite.scaleY * 1.05,
+            yoyo: true,
+            duration: 120,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    async buildHouseAtCell(cellIndex) {
+        if (this._buildingInProgress) return;
+        this._buildingInProgress = true;
+
+        try {
+            const res = await apiBuildHouse({
+                type: 'FARM',        // HouseType.FARM
+                skin: 'simpleHouse', // либо 'housAnims', если хочешь анимированный дом
+                cell: cellIndex
+            });
+
+            if (!res.ok) {
+                console.error('Не удалось построить дом', res.error || res.raw);
+                return;
+            }
+
+            const newHouse = res.house;
+
+            if (
+                typeof newHouse.cell === 'number' &&
+                newHouse.cell >= 0 &&
+                newHouse.cell < this.totalCells
+            ) {
+                this.cells[newHouse.cell] = newHouse;
+                this.spawnHouseAtCell(newHouse.cell, newHouse);
+            } else {
+                console.warn('Сервер вернул дом с некорректным cell', newHouse);
+            }
+        } catch (e) {
+            console.error('Ошибка при вызове apiBuildHouse', e);
+        } finally {
+            this._buildingInProgress = false;
+        }
     }
 }
-
-
-// for (let i = gameField.length - 1; i >= 0; i--) {
-//         const row = Math.floor(i / cols);
-//         const col = i % cols;
-//         const xInBorder = contentW / 5.5 + col * cellW / 2.8 + row * 140;
-//         const yInBorder = contentH / 1.75 + row * cellH / 2.7 - col * 120;
-//         const house = this.add.image(xInBorder, yInBorder, 'house')
-//             .setOrigin(0.5);
-//         house.setInteractive({ useHandCursor: true });
-//         const shadow = this.add.image(house.x, house.y, 'house')
-//             .setOrigin(0.5)
-//             .setTint(0x000000)
-//             .setAlpha(0.2)
-//             .setScale(0.92);
-//         shadow.setVisible(false);
-//         house.on('pointerover', () => {
-//             shadow.setVisible(true);
-//             shadow.x = house.x;
-//             shadow.y = house.y;
-//             this.tweens.killTweensOf(shadow);
-//             this.tweens.add({
-//                 targets: shadow,
-//                 alpha: { from: 0, to: 0.45 },
-//                 duration: 120,
-//                 ease: 'Power1',
-//             });
-//             this.tweens.add({
-//                 targets: house,
-//                 y: house.y - 6,
-//                 duration: 120,
-//                 ease: 'Power1'
-//             });
-//         });
-//         house.on('pointerout', () => {
-//             this.tweens.killTweensOf(shadow);
-//             this.tweens.add({
-//                 targets: shadow,
-//                 alpha: 0,
-//                 duration: 120,
-//                 ease: 'Power1',
-//                 onComplete: () => shadow.setVisible(false)
-//             });
-//             this.tweens.add({
-//                 targets: house,
-//                 y: house.y + 6,
-//                 duration: 120,
-//                 ease: 'Power1'
-//             });
-//         });
-//         house.setScale(0.9);
-//         const extraX = (cellW - house.displayWidth) / 2;
-//         const extraY = (cellH - house.displayHeight) / 2;
-//         house.x += extraX;
-//         house.y += extraY;
-//         fieldContainer.add(shadow);
-//         fieldContainer.add(house);
-//     }

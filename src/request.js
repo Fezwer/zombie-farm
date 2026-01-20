@@ -141,3 +141,96 @@ export async function onTelegramAuth(user) {
         window.location.href = redirectTo; // вернуться на защищённую страницу
     }
 })();
+
+const GET_PLAYER_QUERY = `
+  query GetPlayer {
+    getPlayer {
+      id
+      username
+      photoUrl
+      meat
+      gold
+      brain
+      boardColor
+      houses {
+        id
+        type
+        level
+        skin
+        cell
+      }
+    }
+  }
+`;
+
+export async function apiGetPlayer() {
+    const res = await callGraphQL(GET_PLAYER_QUERY, {}, "GetPlayer");
+    if (!res.ok || !res.json) {
+        return { ok: false, error: res.statusText || "NETWORK_OR_GQL_ERROR", raw: res };
+    }
+    if (res.json.errors && res.json.errors.length) {
+        return { ok: false, error: res.json.errors, raw: res };
+    }
+    return {
+        ok: true,
+        player: res.json.data.getPlayer,
+        raw: res
+    };
+}
+
+const GET_PLAYER_HOUSES_QUERY = `
+  query GetPlayerHouses {
+    getPlayerHouses {
+      id
+      type
+      level
+      skin
+      cell
+    }
+  }
+`;
+
+export async function apiGetPlayerHouses() {
+    const res = await callGraphQL(GET_PLAYER_HOUSES_QUERY, {}, "GetPlayerHouses");
+    if (!res.ok || !res.json) {
+        return { ok: false, error: res.statusText || "NETWORK_OR_GQL_ERROR", raw: res };
+    }
+    if (res.json.errors && res.json.errors.length) {
+        return { ok: false, error: res.json.errors, raw: res };
+    }
+    return {
+        ok: true,
+        houses: res.json.data.getPlayerHouses,
+        raw: res
+    };
+}
+
+const BUILD_HOUSE_MUTATION = `
+  mutation BuildHouse($input: BuildHouseInput!) {
+    buildHouse(input: $input) {
+      id
+      playerId
+      type
+      level
+      skin
+      cell
+    }
+  }
+`;
+
+export async function apiBuildHouse(input) {
+    const res = await callGraphQL(BUILD_HOUSE_MUTATION, { input }, "BuildHouse");
+    if (!res.ok || !res.json) {
+        return { ok: false, error: res.statusText || "NETWORK_OR_GQL_ERROR", raw: res };
+    }
+
+    if (res.json.errors && res.json.errors.length) {
+        return { ok: false, error: res.json.errors, raw: res };
+    }
+
+    return {
+        ok: true,
+        house: res.json.data.buildHouse,
+        raw: res
+    };
+}
