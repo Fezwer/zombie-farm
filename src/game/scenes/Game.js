@@ -14,7 +14,7 @@ export class Game extends Scene {
         //Создаем анимации
         this.anims.create({
             key: 'houseIdle',
-            frames: this.anims.generateFrameNumbers('housAnims', { start: 0, end: -1 }), // end:-1 означает взять все кадры
+            frames: this.anims.generateFrameNumbers('housAnims', { start: 0, end: totalFrames - 1 }), // end:-1 означает взять все кадры
             frameRate: 32,    // кадров в секунду — подбирайте
             repeat: -1       // -1 = бесконечно
         });
