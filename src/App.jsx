@@ -7,63 +7,82 @@ import Login from './Login';
 import Dashboard from './Dashboard';
 
 
+function AppGameWrapper() {
+    // обёртка чтобы использовать useLocation внутри
+    return <AppGame />;
+}
 function AppGame() {
-    const [showGradientLine, setShowGradientLine] = useState(true);
-    const [canMoveSprite, setCanMoveSprite] = useState(true);
-    const phaserRef = useRef();
-    const [showSidebar, setShowSidebar] = useState(false);
-
-    const addSprite = () => {
-        const scene = phaserRef.current.scene;
-        if (scene) {
-            const x = Phaser.Math.Between(64, scene.scale.width - 64);
-            const y = Phaser.Math.Between(64, scene.scale.height - 64);
-            const star = scene.add.sprite(x, y, 'star');
-            scene.add.tween({ targets: star, duration: 500 + Math.random() * 1000, alpha: 0, yoyo: true, repeat: -1 });
-        }
-    };
-
-    const currentScene = (scene) => {
-        const key = scene.scene.key;
-        setCanMoveSprite(key !== 'MainMenu');
-        
-        setShowSidebar(key === 'Game');
-        setShowGradientLine(key !== 'Game');
-    };
+    const location = useLocation();
+    const phaserRef = useRef(); // тот же ref, который передаёте в FarmGame
+    // эффект — старт сцены если в query есть start=Game и phaser готов
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const startScene = params.get('start'); // ожидаем "Game"
+        if (!startScene) return;
+        // phaserRef.current инициализируется в FarmGame: ref.current = { game: game.current, scene: null }
+        const startIfReady = () => {
+            const r = phaserRef.current;
+            if (r && r.game && r.game.scene) {
+                try {
+                    // Запускаем сцену по ключу
+                    r.game.scene.start(startScene);
+                    // Убираем параметр, чтобы не перезапускать сцену при навигации/рендеринге
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('start');
+                    window.history.replaceState({}, '', url.toString());
+                } catch (e) {
+                    console.error('Не удалось запустить сцену:', e);
+                }
+            }
+        };
+        // Если phaser уже готов — запустить сразу
+        startIfReady();
+        // Если phaser ещё не инициализирован, можно подписаться на EventBus или сделать polling небольшими интервалами.
+        // Здесь — простой polling в течение короткого времени:
+        let tries = 0;
+        const interval = setInterval(() => {
+            tries += 1;
+            startIfReady();
+            if ((phaserRef.current && phaserRef.current.game && phaserRef.current.game.scene) || tries > 20) {
+                clearInterval(interval);
+            }
+        }, 200);
+        return () => clearInterval(interval);
+    }, [location.search]);
 
     return (
         <div id="app" style={{ position: 'relative' }}>
             {showSidebar && (
-             <aside className="sidebar">
-                <div className="sidebarTitle">HZF</div>
-                <div className="rectangles-container">
-                <div className="rectangle" style={{ '--bottom-color': '#945e77' }}>
-                    <div className="top-left">brains</div>
-                    <div className="top-right">9999+ max count</div>
-                    <div className="bottom-left">
-                        <img src="/assets/pink_brain.png" alt='icon' style={{ width: '38px', height: 'auto', verticalAlign: 'bottom'}}/>
-                        <div class="text">23092</div>
+                <aside className="sidebar">
+                    <div className="sidebarTitle">HZF</div>
+                    <div className="rectangles-container">
+                        <div className="rectangle" style={{ '--bottom-color': '#945e77' }}>
+                            <div className="top-left">brains</div>
+                            <div className="top-right">9999+ max count</div>
+                            <div className="bottom-left">
+                                <img src="/assets/pink_brain.png" alt='icon' style={{ width: '38px', height: 'auto', verticalAlign: 'bottom' }} />
+                                <div class="text">23092</div>
+                            </div>
+                            <img src="/assets/brain.png" alt='icon-2' className="bottom-right-image" />
+                        </div>
+                        <div className="rectangle" style={{ '--bottom-color': '#945e77' }}>
+                            <div className="top-left">meat</div>
+                            <div className="top-right">10 meat/sec</div>
+                            <div className="bottom-left">
+                                <img src="/assets/pink_brain.png" alt='icon' style={{ width: '38px', height: 'auto', verticalAlign: 'bottom' }} />
+                                <div className="text-1">9999999+</div>
+                            </div>
+                        </div>
+                        <div className="rectangle" style={{ '--bottom-color': '#e8a851' }}>
+                            <div className="top-left">gold</div>
+                            <div className="top-right">BUY</div>
+                            <div className="bottom-left">
+                                <img src="/assets/coin.png" alt='icon' style={{ width: '35px', height: 'auto', verticalAlign: 'bottom' }} />
+                                <div className="text-1">10002</div>
+                            </div>
+                        </div>
                     </div>
-                    <img src="/assets/brain.png" alt='icon-2' className="bottom-right-image"/>
-                </div>
-                <div className="rectangle" style={{ '--bottom-color': '#945e77' }}>
-                    <div className="top-left">meat</div>
-                    <div className="top-right">10 meat/sec</div>
-                    <div className="bottom-left">
-                        <img src="/assets/pink_brain.png" alt='icon' style={{ width: '38px', height: 'auto', verticalAlign: 'bottom'}}/>
-                        <div className="text-1">9999999+</div>
-                    </div>
-                </div>
-                <div className="rectangle" style={{ '--bottom-color': '#e8a851' }}>
-                    <div className="top-left">gold</div>
-                    <div className="top-right">BUY</div>
-                    <div className="bottom-left">
-                        <img src="/assets/coin.png" alt='icon' style={{ width: '35px', height: 'auto', verticalAlign: 'bottom'}}/>
-                        <div className="text-1">10002</div>
-                    </div>
-                </div>
-                </div>
-             </aside>
+                </aside>
             )}
 
             <header className='header'>
@@ -100,15 +119,15 @@ function AppGame() {
 
 function App() {
     return (
-      <Router>
-        <Routes>
-          <Route path="/" element={<AppGame />} />        
-          <Route path="/login" element={<Login />} />     
-          <Route path="/dashboard" element={<Dashboard />} /> 
-        </Routes>
-      </Router>
+        <Router>
+            <Routes>
+                <Route path="/" element={<AppGame />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+            </Routes>
+        </Router>
     );
-  }
+}
 
 
 export default App

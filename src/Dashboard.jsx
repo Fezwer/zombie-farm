@@ -16,11 +16,12 @@ export default function Dashboard() {
           const params = new URLSearchParams(window.location.search);
           const redirectTo = params.get("redirect");
           if (redirectTo) {
-            // Если redirect — используем window.location (полный переход) или navigate
             window.location.href = redirectTo;
           } else {
-            // Локальная навигация в SPA
-            navigate("/", { replace: true });
+            // SPA-редирект: добавляем ?start=Game
+            navigate("/?start=Game", { replace: true });
+            // или если хотите полный reload:
+            // window.location.href = "/?start=Game";
           }
         } else {
           // Обработка ошибки от сервера — показать сообщение пользователю
@@ -67,9 +68,15 @@ export default function Dashboard() {
           <span className="close-x" onClick={() => navigate(-1)}>x</span>
         </div>
         <h3 className="brand">HZF</h3>
+        <div className="actions">
+          <button className="btn outline">
+            <img className="btn-icon" src="/assets/telegram.png" alt="Telegram" />
+            telegram
+          </button>
+        </div>
 
         {/* Контейнер для Telegram-виджета */}
-        <div id="telegram-widget-container"></div>
+        <div id="telegram-widget-container" style={{ marginTop: 16 }}></div>
       </div>
     </div>
   );
