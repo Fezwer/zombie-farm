@@ -25,7 +25,7 @@ export class Game extends Scene {
         this.DEPTH = {
             BORDER: -10,
             BOARD_PLACEHOLDER: 0,
-            FIELD: 5,    // поле фермы
+            FIELD: -10,    // поле фермы
             ZOMBIE: 10,  // зомби
             HOUSE: 15    // simpleHouse / housAnims
         };
