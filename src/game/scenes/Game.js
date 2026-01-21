@@ -8,24 +8,25 @@ import { apiGetPlayerHouses, apiBuildHouse } from '../../request';
 export class Game extends Scene {
     constructor() {
         super('Game');
-
         // Размер клетки
         this.cellW = 300 * 0.9;
         this.cellH = 300 * 0.9;
-
-        // Сетка 4x4 (16 ячеек)
         this.COLS = 4;
         this.ROWS = 4;
         this.totalCells = this.COLS * this.ROWS;
-
-        // Логические данные по ячейкам (House или null)
         this.cells = [];
-
-        // Плейсхолдеры (пустые объекты 300x300)
         this.cellPlaceholders = [];
-
-        // Спрайты/картинки домов по ID
         this.houseSprites = new Map();
+        // ⚡ выбранное строение из магазина
+        this.currentBuildConfig = null;
+        // флаг, чтобы не дёргать API параллельно
+        this._buildingInProgress = false;
+    }
+
+    setBuildConfig(config) {
+        // ожидаем { type: 'FARM' | 'STORAGE' | 'DECOR', skin: 'basic' }
+        this.currentBuildConfig = config;
+        console.log('Build config set from React shop:', config);
     }
 
     create() {
@@ -70,39 +71,36 @@ export class Game extends Scene {
             const col = cellIndex % this.COLS;
             const row = Math.floor(cellIndex / this.COLS);
 
-            // Координаты "внутри" бордера по твоей формуле
             const xInBorder = contentW / 3.2 + (col * this.cellW) / 2.2 + row * 140;
             const yInBorder = contentH / 1.75 + (row * this.cellH) / 2.7 - col * 120;
 
-            // 1) Подложка поля — картинка field под дом (или просто земля)
-            // const field = this.add.image(xInBorder, yInBorder, 'field');
-            // field.setDisplaySize(this.cellW, this.cellH);
-            // field.setDepth(0); // под домами
-
-            // 2) Пустой объект 300x300 — прозрачный прямоугольник, по которому кликаем
             const rect = this.add.rectangle(
                 xInBorder,
                 yInBorder,
                 this.cellW,
                 this.cellH,
                 0x000000,
-                0 // прозрачный
+                0
             );
-            // Изначально рамка невидима
             rect.setStrokeStyle(1, 0x000000, 0);
             rect.setInteractive({ useHandCursor: true });
             rect.cellIndex = cellIndex;
+
             rect.on('pointerover', () => {
-                rect.setStrokeStyle(2, 0xffff00, 0.6); // только при ховере видимая рамка
+                rect.setStrokeStyle(2, 0xffff00, 0.6);
             });
             rect.on('pointerout', () => {
-                rect.setStrokeStyle(1, 0x000000, 0); // снова полностью прозрачная
+                rect.setStrokeStyle(1, 0x000000, 0);
+            });
+
+            // ⚡ клик по клетке
+            rect.on('pointerup', () => {
+                this.onCellClicked(cellIndex);
             });
 
             this.cellPlaceholders.push(rect);
         }
 
-        // Чтобы дома были над border и field
         this.border.setDepth(-1);
     }
 
@@ -227,17 +225,26 @@ export class Game extends Scene {
 
     async buildHouseAtCell(cellIndex) {
         if (this._buildingInProgress) return;
+
+        // ⚡ без выбранного в магазине здания – ничего не строим
+        if (!this.currentBuildConfig) {
+            console.warn('Build config is not set. Open shop and choose a building.');
+            return;
+        }
+
+        const { type, skin } = this.currentBuildConfig;
+
         this._buildingInProgress = true;
 
         try {
             const res = await apiBuildHouse({
-                type: 'FARM',        // HouseType.FARM
-                skin: 'basic', // либо 'housAnims', если хочешь анимированный дом
+                type: type || 'FARM',   // подстраховка
+                skin: skin || 'basic',
                 cell: cellIndex
             });
 
             if (!res.ok) {
-                console.error('Не удалось построить ферму', res.error || res.raw);
+                console.error('Не удалось построить дом', res.error || res.raw);
                 return;
             }
 
