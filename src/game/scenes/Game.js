@@ -225,31 +225,23 @@ export class Game extends Scene {
 
     async buildHouseAtCell(cellIndex) {
         if (this._buildingInProgress) return;
-
-        // ⚡ без выбранного в магазине здания – ничего не строим
         if (!this.currentBuildConfig) {
             console.warn('Build config is not set. Open shop and choose a building.');
             return;
         }
-
         const { type, skin } = this.currentBuildConfig;
-
         this._buildingInProgress = true;
-
         try {
             const res = await apiBuildHouse({
-                type: type || 'FARM',   // подстраховка
+                type: type || 'FARM',
                 skin: skin || 'basic',
                 cell: cellIndex
             });
-
             if (!res.ok) {
                 console.error('Не удалось построить дом', res.error || res.raw);
                 return;
             }
-
             const newHouse = res.house;
-
             if (
                 typeof newHouse.cell === 'number' &&
                 newHouse.cell >= 0 &&
@@ -257,6 +249,8 @@ export class Game extends Scene {
             ) {
                 this.cells[newHouse.cell] = newHouse;
                 this.spawnHouseAtCell(newHouse.cell, newHouse);
+                // ⚡ сообщаем React, что дом построен (ресурсы могли измениться)
+                EventBus.emit('house-built', { house: newHouse });
             } else {
                 console.warn('Сервер вернул дом с некорректным cell', newHouse);
             }

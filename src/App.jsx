@@ -17,27 +17,45 @@ function AppGame() {
   const [isShopOpen, setIsShopOpen] = useState(false);     // ⚡ новая
   const phaserRef = useRef();
 
+  const loadPlayer = useCallback(async () => {
+    const playerRes = await apiGetPlayer();
+    if (playerRes.ok) {
+      setPlayer(playerRes.player);
+    } else {
+      console.error('Не удалось получить игрока', playerRes.error || playerRes.raw);
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       const res = await getScrfToken();
       if (!res.ok) {
-        console.error("Не удалось получить CSRF-токен", res);
+        console.error('Не удалось получить CSRF-токен', res);
       }
-
-      // Загружаем игрока
-      const playerRes = await apiGetPlayer();
-      if (playerRes.ok) {
-        setPlayer(playerRes.player);
-      } else {
-        console.error("Не удалось получить игрока", playerRes.error || playerRes.raw);
-      }
+      // ⚡ первая загрузка игрока
+      await loadPlayer();
     })();
-
     const params = new URLSearchParams(window.location.search);
     const start = params.get('start');
     if (start) {
       setStartScene(start);
     }
+  }, [loadPlayer]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      loadPlayer();
+    }, 2000);
+    return () => clearInterval(id);
+  }, [loadPlayer]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      postAuthRefresh().catch((e) =>
+        console.error('Ошибка при postAuthRefresh()', e)
+      );
+    }, 10 * 60 * 1000); // 10 минут
+    return () => clearInterval(id);
   }, []);
 
   const currentScene = (scene) => {
@@ -45,13 +63,12 @@ function AppGame() {
     setCanMoveSprite(key !== 'MainMenu');
     setShowSidebar(key === 'Game');
     setShowGradientLine(key !== 'Game');
-    // ⚡ запоминаем, что сейчас Game
     const isGame = key === 'Game';
     setIsGameScene(isGame);
-    // если выходим из Game — закрываем магазин
     if (!isGame) {
       setIsShopOpen(false);
     }
+    // авто-переход по ?start=...
     if (startScene && key !== startScene) {
       scene.scene.start(startScene);
       setStartScene(null);
@@ -177,7 +194,11 @@ function AppGame() {
           }}
         />
       )}
-      <FarmGame ref={phaserRef} currentActiveScene={currentScene} />
+      <FarmGame
+        ref={phaserRef}
+        currentActiveScene={currentScene}
+        onHouseBuilt={loadPlayer}   // ⚡ сюда
+      />
     </div>
   );
 }

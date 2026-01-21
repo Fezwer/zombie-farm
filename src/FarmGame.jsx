@@ -2,55 +2,52 @@ import { forwardRef, useEffect, useLayoutEffect, useRef } from 'react';
 import StartGame from './game/main';
 import { EventBus } from './game/EventBus';
 
-export const FarmGame = forwardRef(function FarmGame({ currentActiveScene }, ref) {
-    const game = useRef();
+export const FarmGame = forwardRef(function FarmGame(
+  { currentActiveScene, onHouseBuilt },  // ⚡ добавили onHouseBuilt
+  ref
+) {
+  const game = useRef();
 
-    // Create the game inside a useLayoutEffect hook to avoid the game being created outside the DOM
-    useLayoutEffect(() => {
+  useLayoutEffect(() => {
+    if (game.current === undefined) {
+      game.current = StartGame('game-container');
+      if (ref !== null) {
+        ref.current = { game: game.current, scene: null };
+      }
+    }
 
-        if (game.current === undefined) {
-            game.current = StartGame("game-container");
+    return () => {
+      if (game.current) {
+        game.current.destroy(true);
+        game.current = undefined;
+      }
+    };
+  }, [ref]);
 
-            if (ref !== null) {
-                ref.current = { game: game.current, scene: null };
-            }
-        }
+  useEffect(() => {
+    const handleSceneReady = (currentScene) => {
+      if (currentActiveScene instanceof Function) {
+        currentActiveScene(currentScene);
+      }
+      if (ref.current) {
+        ref.current.scene = currentScene;
+      }
+    };
 
-        return () => {
+    const handleHouseBuilt = (payload) => {
+      if (onHouseBuilt) {
+        onHouseBuilt(payload);
+      }
+    };
 
-            if (game.current) {
-                game.current.destroy(true);
-                game.current = undefined;
-            }
+    EventBus.on('current-scene-ready', handleSceneReady);
+    EventBus.on('house-built', handleHouseBuilt); // ⚡
 
-        }
-    }, [ref]);
+    return () => {
+      EventBus.removeListener('current-scene-ready', handleSceneReady);
+      EventBus.removeListener('house-built', handleHouseBuilt);
+    };
+  }, [currentActiveScene, onHouseBuilt, ref]);
 
-    useEffect(() => {
-
-        EventBus.on('current-scene-ready', (currentScene) => {
-
-            if (currentActiveScene instanceof Function) {
-                currentActiveScene(currentScene);
-            }
-            ref.current.scene = currentScene;
-
-        });
-
-        return () => {
-
-            EventBus.removeListener('current-scene-ready');
-
-        }
-
-    }, [currentActiveScene, ref])
-
-    return (
-        <div id="game-container"></div>
-    );
-
+  return <div id="game-container"></div>;
 });
-
-
-
-
