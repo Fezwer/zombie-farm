@@ -1,6 +1,6 @@
 // App.jsx (фрагмент)
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { FarmGame } from './FarmGame';
 import Login from './Login';
