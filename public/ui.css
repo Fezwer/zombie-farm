@@ -137,10 +137,12 @@ header {
   align-items: center;
   backdrop-filter: blur(4px);
   background: rgba(0, 0, 0, 0.4);
-  z-index: 1000;
+  z-index: 2000; /* стало 2000 (можно и 9999, главное > 100) */
 }
 
 .shop-window {
+  position: relative;  /* чтобы окно точно рисовалось над своим оверлеем */
+  z-index: 2001;
   width: 900px;
   max-width: 95vw;
   background: #222;
