@@ -17,13 +17,18 @@ export class Game extends Scene {
         this.cells = [];
         this.cellPlaceholders = [];
         this.houseSprites = new Map();
-        // ⚡ выбранное строение из магазина
         this.currentBuildConfig = null;
-        // флаг, чтобы не дёргать API параллельно
         this._buildingInProgress = false;
-
-        // ⚡ зомби на карте
         this.zombies = [];
+
+        // ⚡ слои от заднего к переднему
+        this.DEPTH = {
+            BORDER: -10,
+            BOARD_PLACEHOLDER: 0,
+            FIELD: 5,    // поле фермы
+            ZOMBIE: 10,  // зомби
+            HOUSE: 15    // simpleHouse / housAnims
+        };
     }
 
     setBuildConfig(config) {
@@ -38,7 +43,8 @@ export class Game extends Scene {
         this.border = this.add.image(contentW / 2, contentH / 2, 'border')
             .setOrigin(0.5)
             .setAngle(3)
-            .setScale(0.9);
+            .setScale(0.9)
+            .setDepth(this.DEPTH.BORDER);
         this.initBoardData();
         this.createBoard(contentW, contentH);
         this.ensureHouseAnimations();
@@ -173,6 +179,7 @@ export class Game extends Scene {
             );
             rect.setStrokeStyle(1, 0x000000, 0);
             rect.setInteractive({ useHandCursor: true });
+            rect.setDepth(this.DEPTH.BOARD_PLACEHOLDER);
             rect.cellIndex = cellIndex;
 
             rect.on('pointerover', () => {
@@ -190,7 +197,7 @@ export class Game extends Scene {
             this.cellPlaceholders.push(rect);
         }
 
-        this.border.setDepth(-1);
+        this.border.setDepth(this.DEPTH.BORDER);
     }
 
     ensureHouseAnimations() {
@@ -254,26 +261,23 @@ export class Game extends Scene {
 
     spawnHouseAtCell(cellIndex, house) {
         const { x, y } = this.cellToWorldPosition(cellIndex);
-
         let obj;
 
-        // housAnims -> спрайт с анимацией
         if (house.type === 'DECOR') {
             obj = this.add.sprite(x, y, 'housAnims');
             if (this.anims.exists('housAnims_idle')) {
                 obj.play('housAnims_idle');
             }
+            obj.setDepth(this.DEPTH.HOUSE); // декор = дом
         } else if (house.type === 'FARM') {
-            // simpleHouse или другие скины -> просто картинка
-            // Предполагаем, что skin = ключ загруженной текстуры
             obj = this.add.image(x, y, 'field');
+            obj.setDepth(this.DEPTH.FIELD); // поле под зомби
         } else if (house.type === 'STORAGE') {
             obj = this.add.image(x, y, 'simpleHouse');
+            obj.setDepth(this.DEPTH.HOUSE); // склад = дом
         }
 
         obj.setDisplaySize(this.cellW, this.cellH);
-        obj.setDepth(0); // над полем
-
         obj.setInteractive({ useHandCursor: true });
         obj.houseData = house;
 
@@ -337,7 +341,7 @@ export class Game extends Scene {
                 newHouse.cell >= 0 &&
                 newHouse.cell < this.totalCells
             ) {
-                his.cells[newHouse.cell] = newHouse;
+                this.cells[newHouse.cell] = newHouse;
                 this.spawnHouseAtCell(newHouse.cell, newHouse);
                 // ⚡ если зомби стоит на этой клетке — переносим его
                 this.relocateZombiesFromCell(newHouse.cell);
