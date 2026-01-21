@@ -6,6 +6,7 @@ import { FarmGame } from './FarmGame';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import { getScrfToken, apiGetPlayer } from './request';
+import { useMemo } from 'react';
 
 function AppGame() {
   const [showGradientLine, setShowGradientLine] = useState(true);
@@ -25,6 +26,12 @@ function AppGame() {
       console.error('Не удалось получить игрока', playerRes.error || playerRes.raw);
     }
   }, []);
+
+  const farmsCount = useMemo(() => {
+    if (!player || !player.houses) return 0;
+    return player.houses.filter(h => h.type === 'FARM').length;
+  }, [player]);
+  const meatPerSecond = farmsCount * 5;
 
   useEffect(() => {
     (async () => {
@@ -114,8 +121,7 @@ function AppGame() {
             <div className="rectangle" style={{ '--bottom-color': '#945e77' }}>
               <div className="top-left">meat</div>
               <div className="top-right">
-                {/* пример: можно потом подставить meat/sec из конфига */}
-                {player ? `${player.meat} total` : '—'}
+                {player ? `${meatPerSecond} meat/sec` : '—'}
               </div>
               <div className="bottom-left">
                 <img
