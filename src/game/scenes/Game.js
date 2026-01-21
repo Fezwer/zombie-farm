@@ -21,6 +21,9 @@ export class Game extends Scene {
         this.currentBuildConfig = null;
         // флаг, чтобы не дёргать API параллельно
         this._buildingInProgress = false;
+
+        // ⚡ зомби на карте
+        this.zombies = [];
     }
 
     setBuildConfig(config) {
@@ -32,38 +35,124 @@ export class Game extends Scene {
     create() {
         const contentW = this.scale.width;
         const contentH = this.scale.height;
-
-        // Фон можно добавить, если нужен:
-        // this.add.image(contentW / 2, contentH / 2, 'brain').setAlpha(0.1);
-
-        // Рисуем border (забор) по центру экрана
         this.border = this.add.image(contentW / 2, contentH / 2, 'border')
             .setOrigin(0.5)
             .setAngle(3)
             .setScale(0.9);
-        // При необходимости — масштабируем
-        // this.border.setScale(0.9);
-
-        // Инициализация данных
         this.initBoardData();
-
-        // Сначала рисуем поле (field) и пустые ячейки
         this.createBoard(contentW, contentH);
-
-        // Анимации для housAnims (если ещё не созданы)
         this.ensureHouseAnimations();
-
-        // Загружаем дома игрока с сервера и расставляем их по cell
         this.loadHousesFromServer();
-
-        // Сообщаем React, что сцена готова
+        // ⚡ зомби
+        this.ensureZombieAnimations();
+        this.spawnZombies(2);   // два зомби
         EventBus.emit('current-scene-ready', this);
+    }
+
+    ensureZombieAnimations() {
+        const texture = this.textures.get('zombieWalk');
+        const totalFrames = texture ? texture.frameTotal : 0;
+        if (!texture || totalFrames === 0) {
+            console.warn('zombieWalk texture not loaded or has 0 frames');
+            return;
+        }
+        if (!this.anims.exists('zombieWalk_anim')) {
+            this.anims.create({
+                key: 'zombieWalk_anim',
+                frames: this.anims.generateFrameNumbers('zombieWalk', {
+                    start: 0,
+                    end: totalFrames - 1
+                }),
+                frameRate: 8,
+                repeat: -1
+            });
+        }
+    }
+
+    getRandomFreeCellIndex() {
+        const free = [];
+        for (let i = 0; i < this.totalCells; i++) {
+            if (!this.cells[i]) {
+                free.push(i);
+            }
+        }
+        if (free.length === 0) {
+            return null;
+        }
+        // если подключён Phaser.Utils.Array
+        return Phaser.Utils.Array.GetRandom(free);
+        // либо так:
+        // const idx = Math.floor(Math.random() * free.length);
+        // return free[idx];
+    }
+
+    spawnZombies(count = 2) {
+        for (let i = 0; i < count; i++) {
+            const zombie = this.add.sprite(0, 0, 'zombieWalk', 0);
+            zombie.setDepth(5); // выше домов
+            zombie.setScale(0.8); // подгони размер под поле, если нужно
+            if (this.anims.exists('zombieWalk_anim')) {
+                zombie.play('zombieWalk_anim');
+            }
+            this.placeZombieOnRandomFreeCell(zombie);
+            this.zombies.push(zombie);
+            this.moveZombieRandom(zombie);
+        }
+    }
+    placeZombieOnRandomFreeCell(zombie) {
+        const cellIndex = this.getRandomFreeCellIndex();
+        if (cellIndex === null) {
+            // нет свободных клеток — просто прячем зомби
+            zombie.setVisible(false);
+            return;
+        }
+        const { x, y } = this.cellToWorldPosition(cellIndex);
+        zombie.setPosition(x, y);
+        zombie.currentCellIndex = cellIndex;
+        zombie.setVisible(true);
+    }
+    moveZombieRandom(zombie) {
+        const targetCellIndex = this.getRandomFreeCellIndex();
+        if (targetCellIndex === null) return;
+        const { x, y } = this.cellToWorldPosition(targetCellIndex);
+        // зеркалим по направлению движения
+        zombie.setFlipX(x < zombie.x);
+        const duration = Phaser.Math.Between(2000, 4000);
+        this.tweens.add({
+            targets: zombie,
+            x,
+            y,
+            duration,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                zombie.currentCellIndex = targetCellIndex;
+                // небольшая пауза перед следующим шагом
+                this.time.delayedCall(
+                    Phaser.Math.Between(300, 800),
+                    () => this.moveZombieRandom(zombie)
+                );
+            }
+        });
+    }
+
+    relocateZombiesFromCell(cellIndex) {
+        const { x, y } = this.cellToWorldPosition(cellIndex);
+        this.zombies.forEach((zombie) => {
+            const dist = Phaser.Math.Distance.Between(zombie.x, zombie.y, x, y);
+            // если зомби близко к центру клетки с домом — отправляем его на другую свободную
+            if (dist < this.cellW * 0.4) {
+                this.placeZombieOnRandomFreeCell(zombie);
+                // движение продолжится само, потому что moveZombieRandom запускает циклом твины
+            }
+        });
     }
 
     initBoardData() {
         this.cells = new Array(this.totalCells).fill(null);
         this.cellPlaceholders = [];
         this.houseSprites.clear();
+
+        this.zombies = [];
     }
 
     createBoard(contentW, contentH) {
@@ -223,6 +312,7 @@ export class Game extends Scene {
         });
     }
 
+
     async buildHouseAtCell(cellIndex) {
         if (this._buildingInProgress) return;
         if (!this.currentBuildConfig) {
@@ -247,8 +337,10 @@ export class Game extends Scene {
                 newHouse.cell >= 0 &&
                 newHouse.cell < this.totalCells
             ) {
-                this.cells[newHouse.cell] = newHouse;
+                his.cells[newHouse.cell] = newHouse;
                 this.spawnHouseAtCell(newHouse.cell, newHouse);
+                // ⚡ если зомби стоит на этой клетке — переносим его
+                this.relocateZombiesFromCell(newHouse.cell);
                 // ⚡ сообщаем React, что дом построен (ресурсы могли измениться)
                 EventBus.emit('house-built', { house: newHouse });
             } else {

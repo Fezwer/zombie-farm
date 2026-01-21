@@ -36,6 +36,11 @@ export class Preloader extends Scene {
             frameWidth: 300,
             frameHeight: 300
         });
+
+        this.load.spritesheet('zombieWalk', 'zombieWalk.jpg', {
+            frameWidth: 160,
+            frameHeight: 160
+        });
     }
 
     create() {
